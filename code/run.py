@@ -6,4 +6,4 @@ if __name__ == '__main__':
     fill_caches_from_graphene()
 
     print("Analyzing company")
-    analyze_company("dk", 33509006, 2)
+    analyze_company("dk", 83047712, 2)
