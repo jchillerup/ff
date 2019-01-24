@@ -6,6 +6,7 @@ from py2neo import Relationship, NodeMatcher
 import urllib
 from termcolor import colored
 import pickle
+from secrets import secrets
 
 requests_cache.install_cache(expire_after=timedelta(days=90))
 name_cache = dict()
@@ -64,7 +65,13 @@ def analyze_person(name, depth, require_strict_name_match=True):
     # Only iterate if we're actually interested in adding some nodes
     if depth > 0:
         while cur_page < number_of_pages:
-            r = requests.get("https://api.opencorporates.com/officers/search?q=%s&page=%d" % (sanitized_name, cur_page))
+            if secrets.get('api_token') is None:
+                api_url = "https://api.opencorporates.com/officers/search?q=%s&page=%d" % (sanitized_name, cur_page)
+            else:
+                api_url = "https://api.opencorporates.com/officers/search?q=%s&page=%d&api_token=%s" % (sanitized_name, cur_page, secrets["api_token"])
+                
+            
+            r = requests.get(api_url)
             # print(r.json())
             number_of_pages = int(r.json()["results"]["total_pages"])
 
@@ -98,8 +105,11 @@ def resolve_company(name):
     num_pages = 1
     
     while page_no <= num_pages:
-        qs = urllib.parse.urlencode({"q": name, "page": page_no})
-        # print("https://api.opencorporates.com/companies/search?%s" % qs)
+        if secrets.get('api_token') is None:
+            qs = urllib.parse.urlencode({"q": name, "page": page_no})
+        else:
+            qs = urllib.parse.urlencode({"q": name, "page": page_no, 'api_token': secrets['api_token']})
+            
         r = requests.get("https://api.opencorporates.com/companies/search?%s" % qs).json()
 
         num_pages = int(r["results"]["total_pages"])
@@ -136,7 +146,11 @@ def analyze_company(jurisdiction, cvr, depth):
 
         
     # get the company
-    r = requests.get("https://api.opencorporates.com/companies/%s/%s" % (jurisdiction, cvr))
+    if secrets.get('api_token') is None:
+        r = requests.get("https://api.opencorporates.com/companies/%s/%s" % (jurisdiction, cvr))
+    else:
+        r = requests.get("https://api.opencorporates.com/companies/%s/%s?api_token=%s" % (jurisdiction, cvr, secrets.get('api_token')))
+        
     company_json_obj = r.json()["results"]["company"]
     # print(company_json_obj)
 
